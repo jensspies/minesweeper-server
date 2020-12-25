@@ -1,0 +1,6 @@
+class clients {
+    clientList = {};
+    constructor() {
+        //;
+    }
+}
