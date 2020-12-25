@@ -1,10 +1,11 @@
 import fastify, { FastifyInstance, FastifyServerOptions } from 'fastify';
-import myWebSocket from './classes/webSocket/myWebSocket';
+import MyWebSocket from './classes/webSocket/myWebSocket';
+import Game from './classes/game';
 
-const server = fastify()
+const server = fastify();
 
-const webSocket = new myWebSocket();
-
+const myWebSocket = new MyWebSocket();
+const thingy = this;
 module.exports = async function (server: FastifyInstance, opts: FastifyServerOptions) {
     server.get('/', async (request, reply) => {
         // default route, explaining the API 
@@ -18,9 +19,38 @@ module.exports = async function (server: FastifyInstance, opts: FastifyServerOpt
         // Maybe check if there is already a game in progress
 
         // Maybe automatically close open games and start teh new one
-
-        const returnValue = 'hello user: ' + params.userKey;
+        const newGame = 4;
+        myWebSocket.addClientToGroup(params.userKey, '' + newGame);
+        const returnValue = '{gameId: ' + newGame + '}';
         return returnValue;
+    });
+      
+    server.get('/subscribeGame/:userKey/:game', async (request, reply) => {
+        const params = JSON.parse(JSON.stringify(request.params));
+        // check if game type is valid
+
+        // Maybe check if there is already a game in progress
+
+        // Maybe automatically close open games and start teh new one
+
+        myWebSocket.addClientToGroup(params.userKey, '' + params.game);
+        const returnValue = '{gameId: ' + params.game + '}';
+        return returnValue;
+    });
+      
+    server.get('/gameUpdate/:gameNumber', async (request, reply) => {
+        const params = JSON.parse(JSON.stringify(request.params));
+        // check if game type is valid
+
+        // Maybe check if there is already a game in progress
+
+        // Maybe automatically close open games and start teh new one
+        const lorem = 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
+        const updateString = lorem.substr(Math.random() * lorem.length);
+        const data = {message: updateString};
+        console.log('sendign update (' + data + ')');
+        myWebSocket.sendUpdateToGroup('4', data);
+        return '';
     });
       
     server.get('/gameTypes', async (request, reply) => {
@@ -40,8 +70,8 @@ module.exports = async function (server: FastifyInstance, opts: FastifyServerOpt
         // send game status or changeset to client(s) 
         // (need to figure out which one is better regarding performance and/or timing issues)
 
-        const clients = webSocket.getClients();
-        return {clients: '{' + JSON.stringify(clients) + '}'};
+        const clients = myWebSocket.getClients();
+        return JSON.stringify(clients);
     });
 
     server.get('*', async (request, reply) => {
