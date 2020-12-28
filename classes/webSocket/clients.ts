@@ -1,18 +1,21 @@
-class Clients {
+import { LoggedClass, LogLevel } from "../loggedClass";
+
+export class Clients extends LoggedClass {
     private clients: any = {};
     private groupsByObject: any = {};
     private groupsById: any = {};
 
-    constructor() {
+    constructor(logger: any) {
+        super(logger);
     }
 
     public addClient(id: string, client: WebSocket): boolean {
         if (!this.clients.id) {
             this.clients[id] = client;
+            this.log('added user: [' + id + '] to client list', LogLevel.debug);
         } else {
             return false;
         }
-        console.log('connection established for [' + id + ']');
         return true;
     }
 
@@ -29,18 +32,20 @@ class Clients {
         this.registerGroup(groupName);
         const clientIsNotYetInList = (this.groupsById[groupName].indexOf(clientId) < 0);
         if (clientIsNotYetInList) {
+            this.log('added user: [' + clientId + '] to client group "' + groupName + '"', LogLevel.debug);
             this.groupsById[groupName].push(clientId);
             this.groupsByObject[groupName].push(this.clients[clientId]);
         }
     }
 
     public getClientsForGroup(groupName: string): WebSocket[] {
-        return this.groupsByObject[groupName];
+        const clients = this.groupsByObject[groupName] || [];
+        return clients;
     }
 
     public removeClient(id: string) {
+        this.log('user: [' + id + '] disconnected and removed from list', LogLevel.debug);
         this.clients.id = null;
-        console.log('client [' + id + '] disconnected');
     }
 }
 export default Clients;

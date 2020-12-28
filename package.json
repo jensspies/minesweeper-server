@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "test",
-    "start": "fastify start server.js",
-    "build": "tsc ./server.ts",
+    "start": "fastify start ./build/server.js",
+    "build": "tsc ./server.ts --outDir ./build",
     "runIt": "npm run build && npm run start"
   },
   "author": "Jens Spies",
@@ -16,6 +16,7 @@
     "fastify": "^3.9.2",
     "fastify-cli": "^2.6.0",
     "fastify-cors": "^5.1.0",
+    "simple-node-logger": "^18.12.24",
     "ws": "^7.4.1"
   },
   "devDependencies": {
