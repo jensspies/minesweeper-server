@@ -77,8 +77,30 @@ export class GameKeeper extends LoggedClass{
         }
     }
 
-    revealCellForUserAndGame(userKey: any, game: any, column: any, row: any) {
+    public revealCellForUserAndGame(userKey: any, game: any, column: any, row: any) {
         throw new Error('Method not implemented.');
     }
     
+    public getCurrentlyRunningGames(): any[] {
+        const runningGames: Game[] = this._filterGamesForRunningOnes();
+        const formattedGames: any[] = [];
+        runningGames.forEach((game, index) => {
+            const gameData: any = {};
+            gameData['id'] = index;
+            Object.assign(gameData, game.getGameOverviewObject());
+            formattedGames.push(gameData);
+        });
+        return formattedGames;
+    }
+
+    private _filterGamesForRunningOnes(): Game[] {
+        const runningGames: Game[] = [];
+        this.games.forEach((game, index) => {
+            //if (game.isOngoing()) {
+                runningGames[index] = game;
+            //}
+        });
+        return runningGames               
+    }
+
 }

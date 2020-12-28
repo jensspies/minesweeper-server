@@ -66,6 +66,11 @@ module.exports = async function (server: FastifyInstance, opts: FastifyServerOpt
         return gameTypes;
     });
 
+    server.get('/runningGames', async (request, reply) => {
+        const gameList: any[] = gameKeeper.getCurrentlyRunningGames();
+        return gameList;
+    });
+
     server.get('/reveal/:user/:game/:column/:row', async (request, reply) => {
         const params = JSON.parse(JSON.stringify(request.params));
         gameKeeper.revealCellForUserAndGame(params.userKey, params.game, params.column, params.row);
