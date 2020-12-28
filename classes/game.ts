@@ -4,7 +4,7 @@ import { Layout } from './board/layout';
 import { LoggedClass, LogLevel } from './loggedClass';
 
 export class Game extends LoggedClass{
-
+    
     private gameBoard: GameBoard;
     constructor(layout: Layout, logger: any) {
         super(logger);
@@ -14,4 +14,9 @@ export class Game extends LoggedClass{
     public getLayout(): Layout {
         return this.gameBoard.getLayout();
     }
+
+    isOngoing(): boolean {
+        throw new Error('Method not implemented.');
+    }
+
 }

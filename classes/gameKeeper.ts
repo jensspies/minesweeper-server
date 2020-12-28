@@ -4,8 +4,7 @@ import { Game } from './game';
 import { MyWebSocket } from './webSocket/myWebSocket';
 import { LogLevel, LoggedClass} from './loggedClass';
 
-class GameKeeper extends LoggedClass{
-
+export class GameKeeper extends LoggedClass{
     private games: Game[] = [];
     
     private myWebSocket: MyWebSocket;
@@ -13,10 +12,10 @@ class GameKeeper extends LoggedClass{
         super(logger);
         this.myWebSocket = new MyWebSocket(logger);
     }
-
+    
     public getAvailableGameLayouts(): any[] {
         const gameTypes: any[] = [];
-
+        this.log('formating available layouts for API', LogLevel.info);
         for (const key in availableLayouts) {
             const entry: any = {}
             if (Object.prototype.hasOwnProperty.call(availableLayouts, key)) {
@@ -29,16 +28,16 @@ class GameKeeper extends LoggedClass{
         }
         return gameTypes;
     }
-
+    
     public getCurrentGameState(gameId: number): void {
         this.log('Updating game [' + gameId + '] for registered users', LogLevel.info);
         const lorem = 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
         const updateString = lorem.substr(Math.random() * lorem.length);
         const data = {message: updateString};
-
+        
         this.myWebSocket.sendUpdateToGroup(gameId, data);
     }
-
+    
     public startNewGame(userKey: string, gameType: string): string {
         this.log('user [' + userKey + '] wants to create gameType [' + gameType + ']', LogLevel.debug);
         
@@ -47,10 +46,10 @@ class GameKeeper extends LoggedClass{
             throw new Error('unsupported gameType');
         }
         const layout = availableLayouts[gameType];
-
+        
         // if (gameAlreadyExistsForUser) { 
-            // logger.debug('user [' + user + '] has pending open games');
-            // Maybe automatically close open games and start the new one
+        // logger.debug('user [' + user + '] has pending open games');
+        // Maybe automatically close open games and start the new one
         //}
         const newGameId = this.games.length;
         const gameCreated = new Game(layout, this.logger);
@@ -61,5 +60,25 @@ class GameKeeper extends LoggedClass{
         const returnValue = '{"gameId": "' + newGameId + '", "description": "' + desc + '"}';
         return returnValue;
     }
+
+    subscribeToGameRequest(userKey: any, gameId: any) {
+        const userExists = this.myWebSocket.checkIfUserIsConnected(userKey);
+        const gameStillRunning = this.games[gameId]?.isOngoing();
+        this.log('User [' + userKey + '] requests to observe game #' + gameId, LogLevel.info);
+        const subscriptionPossible = (userExists &&  gameStillRunning);
+        if (subscriptionPossible) {
+            this.myWebSocket.addClientToGroup(userKey, gameId);
+        } else {
+            let result = 'Subscrition not possible: ';
+            result += ((userExists) ? '' : "\n User " + userKey + ' is not connected!');
+            result += ((gameStillRunning) ? '' : "\n Game #" + gameId + ' is already finished!');
+            this.log(result, LogLevel.info);
+            throw new Error(result);
+        }
+    }
+
+    revealCellForUserAndGame(userKey: any, game: any, column: any, row: any) {
+        throw new Error('Method not implemented.');
+    }
+    
 }
-export default GameKeeper;

@@ -67,5 +67,9 @@ export class MyWebSocket extends LoggedClass {
     private _getClientIdentifier(request: any): string {
         return request.headers['sec-websocket-key'];
     }
+
+    checkIfUserIsConnected(userKey: any): boolean {
+        throw new Error('Method not implemented.');
+    }
 }
 export default MyWebSocket;

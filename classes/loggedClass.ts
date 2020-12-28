@@ -27,6 +27,9 @@ export class LoggedClass {
             case LogLevel.error:
                 this.logger.error(message); 
                 break;
+            case LogLevel.trace:
+                this.logger.trace(message);
+                break;
         }
     }
 
