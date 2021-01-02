@@ -6,13 +6,13 @@ import { LogLevel, LoggedClass} from './loggedClass';
 
 export class GameKeeper extends LoggedClass{
     private games: Game[] = [];
-    
+
     private myWebSocket: MyWebSocket;
     constructor(logger: any) {
         super(logger);
         this.myWebSocket = new MyWebSocket(logger);
     }
-    
+
     public getAvailableGameLayouts(): any[] {
         const gameTypes: any[] = [];
         this.log('formating available layouts for API', LogLevel.info);
@@ -28,26 +28,30 @@ export class GameKeeper extends LoggedClass{
         }
         return gameTypes;
     }
-    
+
     public getCurrentGameState(gameId: number): void {
+        const askedGame = this.games[gameId];
+        const data = {
+            timestamp: Date.now(),
+            gameId: gameId,
+            width: askedGame.getBoardWidth(),
+            height: askedGame.getBoardHeight(),
+            currentState: askedGame.getCurrentGameState()
+        }
         this.log('Updating game [' + gameId + '] for registered users', LogLevel.info);
-        const lorem = 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor';
-        const updateString = lorem.substr(Math.random() * lorem.length);
-        const data = {message: updateString};
-        
-        this.myWebSocket.sendUpdateToGroup(gameId, data);
+        return this.myWebSocket.sendUpdateToGroup(gameId, data);
     }
-    
+
     public startNewGame(userKey: string, gameType: string): string {
         this.log('user [' + userKey + '] wants to create gameType [' + gameType + ']', LogLevel.debug);
-        
+
         if (availableLayouts[gameType] === undefined) {
             this.log('user [' + userKey + '] wanted to create non existing gameType [' + gameType + ']', LogLevel.warn);
             throw new Error('unsupported gameType');
         }
         const layout = availableLayouts[gameType];
-        
-        // if (gameAlreadyExistsForUser) { 
+
+        // if (gameAlreadyExistsForUser) {
         // logger.debug('user [' + user + '] has pending open games');
         // Maybe automatically close open games and start the new one
         //}
@@ -55,9 +59,10 @@ export class GameKeeper extends LoggedClass{
         const gameCreated = new Game(layout, this.logger);
         this.games[newGameId] = gameCreated;
         const desc = layout.getDescription();
-        
+
         this.myWebSocket.addClientToGroup(userKey, '' + newGameId);
         const returnValue = '{"gameId": "' + newGameId + '", "description": "' + desc + '"}';
+        console.log(returnValue);
         return returnValue;
     }
 
@@ -80,7 +85,7 @@ export class GameKeeper extends LoggedClass{
     public revealCellForUserAndGame(userKey: any, game: any, column: any, row: any) {
         throw new Error('Method not implemented.');
     }
-    
+
     public getCurrentlyRunningGames(): any[] {
         const runningGames: Game[] = this._filterGamesForRunningOnes();
         const formattedGames: any[] = [];
@@ -100,7 +105,7 @@ export class GameKeeper extends LoggedClass{
                 runningGames[index] = game;
             //}
         });
-        return runningGames               
+        return runningGames
     }
 
 }

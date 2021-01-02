@@ -34,6 +34,10 @@ export abstract class Layout {
         return this.fieldsDummy;
     }
 
+    public getNumberOfMatrixFields(): number {
+        return this.fieldsMatrix;
+    }
+
     public getNumberOfCellFields(): number {
         return this.fieldsCells;
     }
@@ -71,8 +75,8 @@ export abstract class Layout {
 /**
  *  define an array of field indices, that shall be blocked for game cells
  *  this.dummyFields = [{x: 1, y: 1}];
- * 
- */    
+ *
+ */
     protected defineDummyFields(): void {
         this.dummyFields = [];
     }

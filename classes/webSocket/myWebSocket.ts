@@ -4,6 +4,7 @@ import { Clients } from "./clients";
 export class MyWebSocket extends LoggedClass {
     private webSocketLibrary = require('ws');
     private websocketServer;
+    private host: string = 'localhost';
     private port = 8181;
     private clients: Clients;
     private debug: boolean = true;
@@ -22,16 +23,15 @@ export class MyWebSocket extends LoggedClass {
 
     public sendUpdateToGroup(groupName: number, data: string|any) {
         const clients = this.clients.getClientsForGroup(groupName.toString());
-        if ((typeof (data)) === 'string') {  
+        if ((typeof (data)) === 'string') {
             data = {message: data}
         }
         clients.forEach((client: WebSocket) => {
             try {
                 client.send(JSON.stringify(data));
             } catch (exc) {
-                console.log(exc);
+                this.log(exc, LogLevel.error);
             }
-            
         });
     }
 
@@ -45,14 +45,14 @@ export class MyWebSocket extends LoggedClass {
 
     private _registerClientRegistrationEvent(socketConnection: MyWebSocket) {
         this.websocketServer.addListener('connection', function (client: WebSocket, request: any) {
-            const clientId = socketConnection._getClientIdentifier(request).replace("/", "");
+            const clientId = socketConnection._getClientIdentifier(request);
             socketConnection.logger.info('Websocket user: [' + clientId + '] connected');
             const data = {welcome: clientId};
             client.send(JSON.stringify(data));
-            
+
             socketConnection.clients.addClient(clientId, client);
             socketConnection.clients.addClientToGroup(clientId, 'all');
-            
+
             client.addEventListener('close', function () {
                 const clientId = socketConnection._getClientIdentifier(request);
                 socketConnection.clients.removeClient(clientId);
@@ -65,7 +65,7 @@ export class MyWebSocket extends LoggedClass {
     }
 
     private _getClientIdentifier(request: any): string {
-        return request.headers['sec-websocket-key'];
+        return request.headers['sec-websocket-key'].replace("/", "");
     }
 
     checkIfUserIsConnected(userKey: any): boolean {

@@ -1,7 +1,7 @@
 import GameBoard from './board/gameBoard';
-import { availableLayouts } from './board/availableLayouts';
 import { Layout } from './board/layout';
 import { LoggedClass, LogLevel } from './loggedClass';
+import { Cell } from './board/cell';
 
 export class Game extends LoggedClass{
 
@@ -11,7 +11,7 @@ export class Game extends LoggedClass{
     private started: boolean = false;
     private ongoing: boolean = false;
     private gameOver: boolean = false;
-    
+
     constructor(layout: Layout, logger: any) {
         super(logger);
         this.layout = layout;
@@ -36,6 +36,22 @@ export class Game extends LoggedClass{
 
     public getLayoutTechnicalName() {
         return this.layout.getTechnicalName();
+    }
+
+    public getBoardWidth():number {
+        return this.layout.getNumberOfColumns();
+    }
+
+    public getBoardHeight():number {
+        return this.layout.getNumberOfRows();
+    }
+
+    public getCurrentGameState(): Cell[] {
+        const fieldState = [];
+        for (let cellIndex = 0; cellIndex < this.layout.getNumberOfMatrixFields(); cellIndex++) {
+            fieldState[cellIndex] = new Cell();
+        }
+        return fieldState;
     }
 
     public getGameOverviewObject() {

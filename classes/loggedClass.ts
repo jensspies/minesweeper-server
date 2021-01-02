@@ -13,19 +13,19 @@ export class LoggedClass {
         this.logger = logger;
     }
 
-    public log(message: string, level: LogLevel) {
+    public log(message: any, level: LogLevel) {
         switch (level) {
             case LogLevel.warn:
-                this.logger.warn(message); 
+                this.logger.warn(message);
                 break;
             case LogLevel.debug:
-                this.logger.debug(message); 
+                this.logger.debug(message);
                 break;
             case LogLevel.info:
-                this.logger.info(message); 
+                this.logger.info(message);
                 break;
             case LogLevel.error:
-                this.logger.error(message); 
+                this.logger.error(message);
                 break;
             case LogLevel.trace:
                 this.logger.trace(message);
