@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "test",
-    "start": "fastify start ./build/server.js",
+    "start": "node ./build/server.js",
     "build": "tsc ./server.ts --outDir ./build",
     "runIt": "npm run build && npm run start"
   },

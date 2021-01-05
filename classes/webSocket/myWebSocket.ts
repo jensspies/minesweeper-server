@@ -9,11 +9,19 @@ export class MyWebSocket extends LoggedClass {
     private clients: Clients;
     private debug: boolean = true;
 
-    constructor(logger: any) {
+    constructor(logger: any, webSocketUrl: string = '', port: number = 8181) {
         super(logger);
-        this.log('Opening websocket server on port ' + this.port, LogLevel.debug);
+        if (webSocketUrl && webSocketUrl.length > 0) {
+            this.host = webSocketUrl;
+        }
+        this.port = port;
+        this.log('Opening websocket server on [' + this.host + '] port ' + this.port, LogLevel.debug);
         this.clients = new Clients(this.logger);
-        this.websocketServer = new this.webSocketLibrary.Server({port: this.port, clientTracking: true});
+        this.websocketServer = new this.webSocketLibrary.Server({
+            host: this.host,
+            port: this.port,
+            clientTracking: true
+        });
         this._registerEvents();
     }
 
@@ -65,11 +73,11 @@ export class MyWebSocket extends LoggedClass {
     }
 
     private _getClientIdentifier(request: any): string {
-        return request.headers['sec-websocket-key'].replace("/", "");
+        return request.headers['sec-websocket-key'].replace("/", "").replace("+", "");
     }
 
-    checkIfUserIsConnected(userKey: any): boolean {
-        throw new Error('Method not implemented.');
+    checkIfUserIsConnected(userKey: string): boolean {
+        return this.clients.userExists(userKey);
     }
 }
 export default MyWebSocket;

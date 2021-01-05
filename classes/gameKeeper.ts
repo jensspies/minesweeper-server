@@ -8,9 +8,17 @@ export class GameKeeper extends LoggedClass{
     private games: Game[] = [];
 
     private myWebSocket: MyWebSocket;
-    constructor(logger: any) {
+    constructor(logger: any, webSocketOptions: any = {}) {
         super(logger);
-        this.myWebSocket = new MyWebSocket(logger);
+        const options = Object.assign(this.getDefaultWebsocketOptions(), webSocketOptions);
+        this.myWebSocket = new MyWebSocket(logger, options.url, options.port);
+    }
+
+    private getDefaultWebsocketOptions(): any {
+        return {
+            url: 'localhost',
+            port: 8181
+        }
     }
 
     public getAvailableGameLayouts(): any[] {
@@ -31,15 +39,21 @@ export class GameKeeper extends LoggedClass{
 
     public getCurrentGameState(gameId: number): void {
         const askedGame = this.games[gameId];
-        const data = {
-            timestamp: Date.now(),
-            gameId: gameId,
-            width: askedGame.getBoardWidth(),
-            height: askedGame.getBoardHeight(),
-            currentState: askedGame.getCurrentGameState()
+        const data: any = {};
+        if (askedGame) {
+            this.log('Updating game [' + gameId + '] for registered users', LogLevel.info);
+            data.timestamp = Date.now();
+            data.gameId = gameId;
+            data.width = askedGame.getBoardWidth();
+            data.height = askedGame.getBoardHeight();
+            data.currentState = askedGame.getCurrentGameState();
+
+            this.myWebSocket.sendUpdateToGroup(gameId, data);
+        } else {
+            this.log('Game [' + gameId + '] does not exist', LogLevel.debug);
+            data.message = "Game does not exist";
+            return data;
         }
-        this.log('Updating game [' + gameId + '] for registered users', LogLevel.info);
-        return this.myWebSocket.sendUpdateToGroup(gameId, data);
     }
 
     public startNewGame(userKey: string, gameType: string): string {
@@ -56,34 +70,39 @@ export class GameKeeper extends LoggedClass{
         // Maybe automatically close open games and start the new one
         //}
         const newGameId = this.games.length;
-        const gameCreated = new Game(layout, this.logger);
+        const gameCreated = new Game(layout, userKey, newGameId, this.logger);
         this.games[newGameId] = gameCreated;
         const desc = layout.getDescription();
 
         this.myWebSocket.addClientToGroup(userKey, '' + newGameId);
         const returnValue = '{"gameId": "' + newGameId + '", "description": "' + desc + '"}';
-        console.log(returnValue);
+        this.log('game created: ' + returnValue, LogLevel.info);
         return returnValue;
     }
 
     subscribeToGameRequest(userKey: any, gameId: any) {
+        this.log('User [' + userKey + '] requests to observe game #' + gameId, LogLevel.info);
         const userExists = this.myWebSocket.checkIfUserIsConnected(userKey);
         const gameStillRunning = this.games[gameId]?.isOngoing();
-        this.log('User [' + userKey + '] requests to observe game #' + gameId, LogLevel.info);
         const subscriptionPossible = (userExists &&  gameStillRunning);
         if (subscriptionPossible) {
             this.myWebSocket.addClientToGroup(userKey, gameId);
         } else {
             let result = 'Subscrition not possible: ';
             result += ((userExists) ? '' : "\n User " + userKey + ' is not connected!');
-            result += ((gameStillRunning) ? '' : "\n Game #" + gameId + ' is already finished!');
+            result += ((gameStillRunning) ? '' : "\n Game #" + gameId + ' is already finished or doesn\'t exist!');
             this.log(result, LogLevel.info);
             throw new Error(result);
         }
     }
 
-    public revealCellForUserAndGame(userKey: any, game: any, column: any, row: any) {
-        throw new Error('Method not implemented.');
+    public revealCellForUserAndGame(userKey: any, gameId: number, column: any, row: any) {
+        const game = this.games[gameId];
+        //const ownerCorrect = game.getGameId() === gameId && game.getUserKey() === userKey;
+        if (game) {
+            game.revealCell(column, row);
+        }
+        this.getCurrentGameState(game.getGameId());
     }
 
     public getCurrentlyRunningGames(): any[] {
@@ -101,11 +120,15 @@ export class GameKeeper extends LoggedClass{
     private _filterGamesForRunningOnes(): Game[] {
         const runningGames: Game[] = [];
         this.games.forEach((game, index) => {
-            //if (game.isOngoing()) {
+            if (game.isOngoing()) {
                 runningGames[index] = game;
-            //}
+            }
         });
         return runningGames
     }
 
+    public resetGames() {
+        this.games = [];
+        this.log('## Game memory has been cleared', LogLevel.info);
+    }
 }

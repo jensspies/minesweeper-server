@@ -17,7 +17,7 @@ export class FullExpert extends FullMatrix {
     protected getRowCount() {
         return 16;
     }
-    
+
     protected getMineCount() {
         return 99;
     }

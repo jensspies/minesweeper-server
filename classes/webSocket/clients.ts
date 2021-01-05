@@ -4,6 +4,7 @@ export class Clients extends LoggedClass {
     private clients: any = {};
     private groupsByObject: any = {};
     private groupsById: any = {};
+    private clientGroupSubscriptions: any = {};
 
     constructor(logger: any) {
         super(logger);
@@ -35,6 +36,10 @@ export class Clients extends LoggedClass {
             this.log('added user: [' + clientId + '] to client group "' + groupName + '"', LogLevel.debug);
             this.groupsById[groupName].push(clientId);
             this.groupsByObject[groupName].push(this.clients[clientId]);
+
+            const currentSubs = this.clientGroupSubscriptions[clientId] || [];
+            currentSubs.push(groupName);
+            this.clientGroupSubscriptions[clientId] = currentSubs;
         }
     }
 
@@ -45,7 +50,28 @@ export class Clients extends LoggedClass {
 
     public removeClient(id: string) {
         this.log('user: [' + id + '] disconnected and removed from list', LogLevel.debug);
+        this._removeFromGroups(id);
+        this._removeFromGlobalClientList(id);
+    }
+
+    private _removeFromGlobalClientList(id: string) {
         this.clients.id = null;
+    }
+
+    private _removeFromGroups(id: string) {
+        const groupSubscriptions = this.clientGroupSubscriptions[id];
+        groupSubscriptions.forEach((groupId: string) => {
+            const clientObject = this.clients[id];
+            const objIndex = this.groupsByObject[groupId].indexOf(clientObject);
+            this.groupsByObject[groupId].splice(objIndex,1);
+            const idIndex = this.groupsById[groupId].indexOf(id);
+            this.groupsById[groupId].splice(idIndex,1);
+        });
+    }
+
+    public userExists(id: string): boolean {
+        // TODO: implement user Check
+        return true;
     }
 }
 export default Clients;

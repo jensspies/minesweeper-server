@@ -1,3 +1,8 @@
+export interface DummyField {
+    column: number,
+    row: number
+}
+
 export abstract class Layout {
     private columns: number = -1;
     private rows: number = -1;
@@ -7,12 +12,11 @@ export abstract class Layout {
     private fieldsCells: number = -1;
     private fieldsDummy: number = -1;
 
-    private dummyFields: any[] = [];
+    protected dummyFields: DummyField[] = [];
 
     constructor() {
         this.initializeLayout();
         this.defineDummyFields();
-        this.dummyFields;
         this.fieldsMatrix = this.columns * this.rows;
         this.fieldsDummy = this.dummyFields.length;
         this.fieldsCells = this.fieldsMatrix - this.fieldsDummy;
@@ -42,7 +46,7 @@ export abstract class Layout {
         return this.fieldsCells;
     }
 
-    public getDummyFields(): any[] {
+    public getDummyFields(): DummyField[] {
         return this.dummyFields;
     }
 
@@ -74,7 +78,7 @@ export abstract class Layout {
 
 /**
  *  define an array of field indices, that shall be blocked for game cells
- *  this.dummyFields = [{x: 1, y: 1}];
+ *  this.dummyFields = [{column: 1, row: 1}];
  *
  */
     protected defineDummyFields(): void {
