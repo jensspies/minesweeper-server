@@ -1,4 +1,5 @@
 export class Cell {
+    protected _id: number = -1;
     protected _dummyField: boolean = false;
     protected _bombField: boolean = false;
     protected _isMarkedAsBomb: boolean = false;
@@ -8,6 +9,11 @@ export class Cell {
     constructor(id: number) {
         this.setIsDummyField();
         this.setIsBombField();
+        this._id = id;
+    }
+
+    public getIndex(): number {
+        return this._id;
     }
 
     public isBomb(): boolean {
@@ -49,6 +55,19 @@ export class Cell {
     public resetMark() {
         this._isMarkedAsBomb = false;
         this._isMarkedAsPossibleBomb = false;
+    }
+
+    public toggleMarker() {
+        switch (true) {
+            case this.isMarkedAsBomb():
+                this.setIsMarkedAsPossibleBomb();
+                break;
+            case this.isMarkedAsPossibleBomb():
+                this.resetMark();
+                break;
+            default:
+                this.setIsMarkedAsBomb();
+        }
     }
 
     public setIsMarkedAsBomb() {

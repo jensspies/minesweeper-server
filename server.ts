@@ -83,6 +83,12 @@ const fastServe = async function (server: FastifyInstance, opts: FastifyServerOp
         return JSON.stringify({});
     });
 
+    server.get('/toggle/:user/:game/:column/:row', async (request, reply) => {
+        const params = JSON.parse(JSON.stringify(request.params));
+        gameKeeper.toggleCellForUserAndGame(params.userKey, params.game, params.column, params.row);
+        return JSON.stringify({});
+    });
+
     server.get('/resetGames', async (request, reply) => {
         gameKeeper.resetGames();
         const data = {message: "games reset"};

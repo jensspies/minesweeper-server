@@ -77,6 +77,7 @@ export class GameKeeper extends LoggedClass{
         this.myWebSocket.addClientToGroup(userKey, '' + newGameId);
         const returnValue = '{"gameId": "' + newGameId + '", "description": "' + desc + '"}';
         this.log('game created: ' + returnValue, LogLevel.info);
+        this.getCurrentGameState(newGameId);
         return returnValue;
     }
 
@@ -101,6 +102,15 @@ export class GameKeeper extends LoggedClass{
         //const ownerCorrect = game.getGameId() === gameId && game.getUserKey() === userKey;
         if (game) {
             game.revealCell(column, row);
+        }
+        this.getCurrentGameState(game.getGameId());
+    }
+
+    public toggleCellForUserAndGame(userKey: string, gameId: number, column: number, row: number) {
+        const game = this.games[gameId];
+        //const ownerCorrect = game.getGameId() === gameId && game.getUserKey() === userKey;
+        if (game) {
+            game.toggleCell(column, row);
         }
         this.getCurrentGameState(game.getGameId());
     }

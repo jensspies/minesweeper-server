@@ -37,26 +37,44 @@ export class Game extends LoggedClass{
         }
 
         const revealPostition: number = this.getArrayPositionOfCell(column, row);
-        this.log('revealPosition: ' + revealPostition, LogLevel.debug);
+        this._revealCell(revealPostition);
+        this.log('cell has been revealed', LogLevel.info);
+    }
 
-        const cell: Cell = this.gameBoardCells[revealPostition];
-        const cellCanNotBeOpened = (this._cellCanBeOpened(cell) === false);
-        if (cellCanNotBeOpened) {
+    public toggleCell(column: number, row: number) {
+        column = parseInt(column.toString());
+        row = parseInt(row.toString());
+        this.log('Toggeling Cell [' + column + ', ' + row + '] for game ' + this.gameId, LogLevel.info);
+        if (this.isGameOver() || !this.started) {
             return;
         }
 
+        const togglePostition: number = this.getArrayPositionOfCell(column, row);
+        this.gameBoardCells[togglePostition].toggleMarker();
+        this.clientGameState[togglePostition].toggleMark();
+    }
 
-        if (cell.isBomb()) {
-            this.clientGameState[revealPostition].setRevealed(-1, true);
-            //this.revealBombsToClient();
-            this._setGameOver();
+    private _revealCell(revealPostition:number) {
+        const cell: Cell = this.gameBoardCells[revealPostition];
+        const cellCanNotBeOpened = (this._cellCanBeOpened(cell) === false);
+        if (cellCanNotBeOpened || this.isOngoing() === false || this.isGameOver() === true) {
+            return;
         }
 
-        this.log('cell has been revealed', LogLevel.info);
+        if (cell.isBomb()) {
+            this._setGameOver();
+            return;
+        }
+
         cell.setRevealed();
-        const bombs = this._getBombNeighboursCount(revealPostition);
-        this.clientGameState[revealPostition].setRevealed(bombs);
-        //this._updateGameState();
+        const bombCount = this._getBombNeighboursCount(revealPostition);
+        this.clientGameState[revealPostition].setRevealed(bombCount);
+
+        if (bombCount === 0) {
+            this.fieldNeighbours[revealPostition].forEach((element: Cell) => {
+                this._revealCell(element.getIndex())
+            });
+        }
     }
 
     private _getBombNeighboursCount(revealPostition: number): number {
@@ -69,12 +87,21 @@ export class Game extends LoggedClass{
         return bombCount;
     }
 
-    private _revealBombsToClient(index: number) {
-        // reveal all bombs to client
-    }
+    private _revealBombsToClient() {
+        const cellIds: number[] = [];
 
-    private _updateGameState() {
-        throw new Error('Method not implemented.');
+        const bombs = this.gameBoardCells.filter((cell, index) => {
+            const isBomb = cell.isBomb();
+            if (isBomb) {
+                cellIds.push(index);
+                cell.setRevealed();
+            }
+            return isBomb;
+        });
+
+        cellIds.forEach((index) => {
+            this.clientGameState[index].setRevealed(-2, true);
+        });
     }
 
     private _cellCanBeOpened(cell: Cell): boolean {
@@ -143,6 +170,7 @@ export class Game extends LoggedClass{
     }
 
     private _setGameOver(): void {
+        this._revealBombsToClient();
         this.ongoing = false;
         this.gameOver = true;
     }
@@ -186,13 +214,13 @@ export class Game extends LoggedClass{
         dummyField.forEach((coord: DummyField) => {
             const position = this.getArrayPositionOfCell(coord.column, coord.row);
             this.gameBoardCells[position] = new DummyCell(position);
-            this.clientGameState[position] = new CellStatus(true);
+            this.clientGameState[position] = new CellStatus(this.getRowAndColumnFromArrayIndex(position), true);
         });
 
         for (let cellIndex = 0; cellIndex < this.layout.getNumberOfMatrixFields(); cellIndex++) {
             if (!this.gameBoardCells[cellIndex]) {
                 this.gameBoardCells[cellIndex] = new RegularCell(cellIndex);
-                this.clientGameState[cellIndex] = new CellStatus(false);
+                this.clientGameState[cellIndex] = new CellStatus(this.getRowAndColumnFromArrayIndex(cellIndex), false);
             }
         }
     }
@@ -204,10 +232,11 @@ export class Game extends LoggedClass{
         return position;
     }
 
-    private getRowAndColumnFromArrayIndex(index: number) {
-        const row = Math.floor(index / this.layout.getNumberOfColumns());
+    private getRowAndColumnFromArrayIndex(index: number): any {
+        const row = Math.floor(index / this.layout.getNumberOfColumns()) + 1;
         const column = (index % this.layout.getNumberOfColumns()) + this.indexOffset;
         const position = {column, row};
+        return position;
     }
 
     public _calculateNeighbours(cellIndex: number): Array<Cell> {

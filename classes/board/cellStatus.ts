@@ -9,14 +9,30 @@ export class CellStatus {
     private exploded: boolean = false;
     private isDummy: boolean = false;
     private mark: CellMark = CellMark.None;
+    private coord: any;
     private bombNeighbours: number = -1;
 
-    constructor(isDummy: boolean) {
+    constructor(coordinates: any, isDummy: boolean) {
         this.isDummy = isDummy;
+        this.coord = coordinates;
     }
 
-    public setMarked(mark: CellMark) {
+    private setMarked(mark: CellMark) {
         this.mark = mark;
+    }
+
+    public toggleMark() {
+        let newMark: CellMark;
+        switch (this.mark) {
+            case CellMark.MarkedUnsafe:
+                newMark = CellMark.MarkedUnsure;
+                break;
+            case CellMark.MarkedUnsure:
+                newMark = CellMark.None
+                break;
+            default: newMark = CellMark.MarkedUnsafe;
+        }
+        this.setMarked(newMark);
     }
 
     public setRevealed(bombNeighbours: number, exploded: boolean = false) {
