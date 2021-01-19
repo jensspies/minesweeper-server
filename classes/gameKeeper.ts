@@ -49,6 +49,8 @@ export class GameKeeper extends LoggedClass{
             data.height = askedGame.getBoardHeight();
             data.gameState = askedGame.getCurrentGameState();
             data.currentState = askedGame.getCurrentCellStates();
+            data.markedBombs = askedGame.getMarkedBombCount();
+            data.totalBombCount = askedGame.getLayout().getNumberOfMines();
         } else {
             this.log('Game [' + gameId + '] does not exist', LogLevel.debug);
             data.message = "Game does not exist";

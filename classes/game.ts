@@ -18,6 +18,7 @@ export class Game extends LoggedClass{
     private fieldsToReveal: number;
     private fieldNeighbours: Array<Array<Cell>> = [];
     private clientGameState: Array<CellStatus> = [];
+    private cellsFlaggedAsBomb: number = 0;
 
     constructor(layout: Layout, userKey: string, gameId: number, logger: any) {
         super(logger);
@@ -104,8 +105,26 @@ export class Game extends LoggedClass{
         }
 
         const togglePostition: number = this.getArrayPositionOfCell(column, row);
+        const currentMarkedAsBombState = this.gameBoardCells[togglePostition].isMarkedAsBomb();
         this.gameBoardCells[togglePostition].toggleMarker();
         this.clientGameState[togglePostition].toggleMark();
+        const toggledMarkedAsBombState = this.gameBoardCells[togglePostition].isMarkedAsBomb();
+
+        this.log('marked bombs before: ' + this.cellsFlaggedAsBomb, LogLevel.debug);
+        this.cellsFlaggedAsBomb += this.getMarkedAsBombCellIncrement(currentMarkedAsBombState, toggledMarkedAsBombState);
+        this.log('marked bombs after: ' + this.cellsFlaggedAsBomb, LogLevel.debug);
+    }
+
+    private getMarkedAsBombCellIncrement(stateBefore: boolean, stateAfter: boolean): number {
+        let increment: number = 0;
+        this.log('stateBefore: ' + stateBefore.valueOf() + ' - stateAfter: ' + stateAfter.valueOf(), LogLevel.debug);
+        let newIncrement = (stateBefore) ? -1 : 1;
+        if (stateBefore !== stateAfter) {
+            increment = newIncrement;
+        }
+
+        this.log('increment calculated: ' + increment, LogLevel.debug);
+        return increment;
     }
 
     private _setWinState() {
@@ -242,6 +261,10 @@ export class Game extends LoggedClass{
                 break;
         }
         return returnValue;
+    }
+
+    public getMarkedBombCount(): number {
+        return this.cellsFlaggedAsBomb;
     }
 
     public getGameOverviewObject(): any {
