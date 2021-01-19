@@ -43,6 +43,18 @@ export class MyWebSocket extends LoggedClass {
         });
     }
 
+    public sendUpdateToUser(userKey: string, data: string|any) {
+        const client = this.clients.getClient(userKey);
+        if ((typeof (data)) === 'string') {
+            data = {message: data}
+        }
+        try {
+            client.send(JSON.stringify(data));
+        } catch (exc) {
+            this.log(exc, LogLevel.error);
+        }
+    }
+
     public addClientToGroup(clientId: string, groupName: string) {
         this.clients.addClientToGroup(clientId, groupName);
     }
@@ -73,7 +85,7 @@ export class MyWebSocket extends LoggedClass {
     }
 
     private _getClientIdentifier(request: any): string {
-        return request.headers['sec-websocket-key'].replace("/", "").replace("+", "");
+        return request.headers['sec-websocket-key'].replace(/\//g, "").replace("+", "");
     }
 
     checkIfUserIsConnected(userKey: string): boolean {

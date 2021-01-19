@@ -23,10 +23,19 @@ export class TestDummies extends Layout {
     }
 
     protected getMineCount() {
-        return 1;
+        return 8;
     }
 
     protected defineDummyFields(): void {
-        this.dummyFields = [{column: 2, row: 1}, {column: 2, row: 3}];
+        this.dummyFields = [
+            {column: 3, row: 2}
+            , {column: 6, row: 2}
+            , {column: 2, row: 3}
+            , {column: 7, row: 3}
+            , {column: 2, row: 6}
+            , {column: 7, row: 6}
+            , {column: 3, row: 7}
+            , {column: 6, row: 7}
+        ];
     }
 }

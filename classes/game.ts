@@ -15,6 +15,7 @@ export class Game extends LoggedClass{
     private ongoing: boolean = false;
     private gameOver: boolean = false;
     private indexOffset: number = 1;
+    private fieldsToReveal: number;
     private fieldNeighbours: Array<Array<Cell>> = [];
     private clientGameState: Array<CellStatus> = [];
 
@@ -24,6 +25,7 @@ export class Game extends LoggedClass{
         this.userKey = userKey;
         this.gameId = gameId;
         this._generateInitialLayout();
+        this.fieldsToReveal = this.layout.getNumberOfCellFields() - this.layout.getNumberOfMines();
     }
 
     public revealCell(column: number, row: number) {
@@ -38,7 +40,59 @@ export class Game extends LoggedClass{
 
         const revealPostition: number = this.getArrayPositionOfCell(column, row);
         this._revealCell(revealPostition);
+        if (this.fieldsToReveal === 0) {
+            this._setWinState();
+        }
         this.log('cell has been revealed', LogLevel.info);
+    }
+
+    private _revealCell(revealPostition:number) {
+        const cell: Cell = this.gameBoardCells[revealPostition];
+        const cellCanNotBeOpened = (this._cellCanBeOpened(cell) === false);
+        if (cellCanNotBeOpened || this.isOngoing() === false || this.isGameOver() === true) {
+            return;
+        }
+
+        if (cell.isBomb()) {
+            this._setGameOver();
+            return;
+        }
+
+
+        cell.setRevealed();
+        const bombCount = this._getBombNeighboursCount(revealPostition);
+        this.clientGameState[revealPostition].setRevealed(bombCount);
+
+        if (bombCount === 0) {
+            this.revealNeighbours(cell);
+        }
+        this.fieldsToReveal--;
+    }
+
+    public revealSafeCells(column: any, row: any) {
+        column = parseInt(column.toString());
+        row = parseInt(row.toString());
+        this.log('Revealing safe cells for [' + column + ', ' + row + '] for game ' + this.gameId, LogLevel.info);
+        const revealPostition: number = this.getArrayPositionOfCell(column, row);
+
+        const cell: Cell = this.gameBoardCells[revealPostition];
+
+        const cellCanNotBeOpened = (this._isCellSafeAround(cell) === false);
+        if (cellCanNotBeOpened || this.isOngoing() === false || this.isGameOver() === true) {
+            this.log('not possible to reveal safe!', LogLevel.debug);
+            return;
+        }
+        this.log('Revealing safe Neighbours', LogLevel.debug);
+        this.revealNeighbours(cell);
+        if (this.fieldsToReveal === 0) {
+            this._setWinState();
+        }
+    }
+
+    private revealNeighbours(cell: Cell): void {
+        this.fieldNeighbours[cell.getIndex()].forEach((element: Cell) => {
+            this._revealCell(element.getIndex())
+        });
     }
 
     public toggleCell(column: number, row: number) {
@@ -54,27 +108,8 @@ export class Game extends LoggedClass{
         this.clientGameState[togglePostition].toggleMark();
     }
 
-    private _revealCell(revealPostition:number) {
-        const cell: Cell = this.gameBoardCells[revealPostition];
-        const cellCanNotBeOpened = (this._cellCanBeOpened(cell) === false);
-        if (cellCanNotBeOpened || this.isOngoing() === false || this.isGameOver() === true) {
-            return;
-        }
-
-        if (cell.isBomb()) {
-            this._setGameOver();
-            return;
-        }
-
-        cell.setRevealed();
-        const bombCount = this._getBombNeighboursCount(revealPostition);
-        this.clientGameState[revealPostition].setRevealed(bombCount);
-
-        if (bombCount === 0) {
-            this.fieldNeighbours[revealPostition].forEach((element: Cell) => {
-                this._revealCell(element.getIndex())
-            });
-        }
+    private _setWinState() {
+        this.ongoing = false;
     }
 
     private _getBombNeighboursCount(revealPostition: number): number {
@@ -109,6 +144,41 @@ export class Game extends LoggedClass{
         const isNotMarkedAsBomb = (cell.isMarkedAsBomb() === false);
         const isNotAlreadyRevealed = (cell.isRevealed() === false);
         return isNotADummy && isNotMarkedAsBomb && isNotAlreadyRevealed;
+    }
+
+    private _isCellSafeAround(cell: Cell): boolean {
+        const isNotADummy = (cell.isDummy() === false);
+        const isRevealed = (cell.isRevealed() === true);
+        const bombCount = this._getBombNeighboursCount(cell.getIndex());
+        const hasAtLeastOneBomb = (bombCount > 0);
+        const markedBombCount = this._getMarkedUnsafeNeighboursCount(cell.getIndex());
+        const hasExactlyBombCountMarkedNeighbours = (bombCount === markedBombCount);
+
+        const isSafeToOpenNeighbours = isNotADummy
+                                    && isRevealed
+                                    && hasAtLeastOneBomb
+                                    && hasExactlyBombCountMarkedNeighbours;
+        if (!isSafeToOpenNeighbours) {
+            this.log(
+                'Dummy: ' + isNotADummy +
+                ' - Revealed: ' + isRevealed +
+                ' - bombCount: ' + bombCount +
+                ' - atLeastOne: ' + hasAtLeastOneBomb +
+                ' - markedBombs: ' + markedBombCount,
+                LogLevel.debug
+            );
+        }
+        return isSafeToOpenNeighbours;
+    }
+
+    private _getMarkedUnsafeNeighboursCount(revealPostition: number): number {
+        let bombMarkedCount = 0;
+        this.fieldNeighbours[revealPostition].forEach((cell: Cell) => {
+            if (cell.isMarkedAsBomb() === true) {
+                bombMarkedCount++;
+            }
+        })
+        return bombMarkedCount;
     }
 
     public getLayout(): Layout {
@@ -151,8 +221,27 @@ export class Game extends LoggedClass{
         return this.layout.getNumberOfRows();
     }
 
-    public getCurrentGameState(): CellStatus[] {
+    public getCurrentCellStates(): CellStatus[] {
         return this.clientGameState;
+    }
+
+    public getCurrentGameState(): any {
+        let returnValue: any = '';
+        switch (true) {
+            case (this.started === false):
+                returnValue = 'PendingStart';
+                break;
+            case (this.gameOver):
+                returnValue = 'GameOver';
+                break;
+            case (this.started && this.ongoing === false && this.fieldsToReveal === 0):
+                returnValue = 'Won';
+                break;
+            case (this.started):
+                returnValue = 'Started';
+                break;
+        }
+        return returnValue;
     }
 
     public getGameOverviewObject(): any {

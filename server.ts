@@ -5,9 +5,10 @@ const logger = require('simple-node-logger').createSimpleLogger();
 logger.info('Starting service');
 logger.setLevel('debug');
 const apiPort = 3000;
-const apiHost = '192.168.178.47';
+const listenHost = '0.0.0.0';
+const apiHost = listenHost;
 const webSocketConfig = {
-    url: '192.168.178.47',
+    url: listenHost,
     port: 8181
 }
 const gameKeeper = new GameKeeper(logger, webSocketConfig);
@@ -77,13 +78,19 @@ const fastServe = async function (server: FastifyInstance, opts: FastifyServerOp
         return gameList;
     });
 
-    server.get('/reveal/:user/:game/:column/:row', async (request, reply) => {
+    server.get('/reveal/:userKey/:game/:column/:row', async (request, reply) => {
         const params = JSON.parse(JSON.stringify(request.params));
         gameKeeper.revealCellForUserAndGame(params.userKey, params.game, params.column, params.row);
         return JSON.stringify({});
     });
 
-    server.get('/toggle/:user/:game/:column/:row', async (request, reply) => {
+    server.get('/revealSafe/:userKey/:game/:column/:row', async (request, reply) => {
+        const params = JSON.parse(JSON.stringify(request.params));
+        gameKeeper.revealSafeCellsForUserAndGame(params.userKey, params.game, params.column, params.row);
+        return JSON.stringify({});
+    });
+
+    server.get('/toggle/:userKey/:game/:column/:row', async (request, reply) => {
         const params = JSON.parse(JSON.stringify(request.params));
         gameKeeper.toggleCellForUserAndGame(params.userKey, params.game, params.column, params.row);
         return JSON.stringify({});

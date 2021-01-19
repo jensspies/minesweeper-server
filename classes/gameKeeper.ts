@@ -3,6 +3,7 @@ import { availableLayouts } from './board/availableLayouts';
 import { Game } from './game';
 import { MyWebSocket } from './webSocket/myWebSocket';
 import { LogLevel, LoggedClass} from './loggedClass';
+import { runInThisContext } from 'vm';
 
 export class GameKeeper extends LoggedClass{
     private games: Game[] = [];
@@ -46,14 +47,13 @@ export class GameKeeper extends LoggedClass{
             data.gameId = gameId;
             data.width = askedGame.getBoardWidth();
             data.height = askedGame.getBoardHeight();
-            data.currentState = askedGame.getCurrentGameState();
-
-            this.myWebSocket.sendUpdateToGroup(gameId, data);
+            data.gameState = askedGame.getCurrentGameState();
+            data.currentState = askedGame.getCurrentCellStates();
         } else {
             this.log('Game [' + gameId + '] does not exist', LogLevel.debug);
             data.message = "Game does not exist";
-            return data;
         }
+        return data;
     }
 
     public startNewGame(userKey: string, gameType: string): string {
@@ -77,7 +77,9 @@ export class GameKeeper extends LoggedClass{
         this.myWebSocket.addClientToGroup(userKey, '' + newGameId);
         const returnValue = '{"gameId": "' + newGameId + '", "description": "' + desc + '"}';
         this.log('game created: ' + returnValue, LogLevel.info);
-        this.getCurrentGameState(newGameId);
+        const gameState = this.getCurrentGameState(newGameId);
+        this.myWebSocket.sendUpdateToGroup(newGameId, gameState);
+
         return returnValue;
     }
 
@@ -95,24 +97,42 @@ export class GameKeeper extends LoggedClass{
             this.log(result, LogLevel.info);
             throw new Error(result);
         }
+        const gameState = this.getCurrentGameState(gameId);
+        this.myWebSocket.sendUpdateToUser(userKey, gameState);
+
     }
 
     public revealCellForUserAndGame(userKey: any, gameId: number, column: any, row: any) {
         const game = this.games[gameId];
-        //const ownerCorrect = game.getGameId() === gameId && game.getUserKey() === userKey;
-        if (game) {
+        if (game && this.isUserAllowedForAction(game, userKey)) {
             game.revealCell(column, row);
         }
-        this.getCurrentGameState(game.getGameId());
+        const gameState = this.getCurrentGameState(gameId);
+        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
+    }
+
+    public revealSafeCellsForUserAndGame(userKey: any, gameId: any, column: any, row: any) {
+        const game = this.games[gameId];
+        if (game && this.isUserAllowedForAction(game, userKey)) {
+            game.revealSafeCells(column, row);
+        }
+        const gameState = this.getCurrentGameState(gameId);
+        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
     }
 
     public toggleCellForUserAndGame(userKey: string, gameId: number, column: number, row: number) {
         const game = this.games[gameId];
-        //const ownerCorrect = game.getGameId() === gameId && game.getUserKey() === userKey;
-        if (game) {
+
+        if (game && this.isUserAllowedForAction(game, userKey)) {
             game.toggleCell(column, row);
         }
-        this.getCurrentGameState(game.getGameId());
+        const gameState = this.getCurrentGameState(gameId);
+        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
+    }
+
+    private isUserAllowedForAction(game: Game, userKey: string): boolean {
+        this.log('userKey game: ' + game.getUserKey() + ' # provided: ' + userKey, LogLevel.debug);
+        return game && game.getUserKey() === userKey;
     }
 
     public getCurrentlyRunningGames(): any[] {

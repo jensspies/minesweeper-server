@@ -43,6 +43,10 @@ export class Clients extends LoggedClass {
         }
     }
 
+    public getClient(userKey: string): any {
+        return this.clients[userKey];
+    }
+
     public getClientsForGroup(groupName: string): WebSocket[] {
         const clients = this.groupsByObject[groupName] || [];
         return clients;
