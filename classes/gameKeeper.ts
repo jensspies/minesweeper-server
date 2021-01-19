@@ -1,9 +1,17 @@
+export enum MessageType {
+    WelcomeMessage = 'WelcomeMessage'
+    , ChatMessage = 'ChatMessage'
+    , GameTypes = 'GameTypes'
+    , GameId = 'GameId'
+    , GameStatus = 'GameStatus'
+    , OpenGames = 'OpenGames'
+}
+
 import { Layout } from './board/layout';
 import { availableLayouts } from './board/availableLayouts';
 import { Game } from './game';
 import { MyWebSocket } from './webSocket/myWebSocket';
 import { LogLevel, LoggedClass} from './loggedClass';
-import { runInThisContext } from 'vm';
 
 export class GameKeeper extends LoggedClass{
     private games: Game[] = [];
@@ -22,7 +30,7 @@ export class GameKeeper extends LoggedClass{
         }
     }
 
-    public getAvailableGameLayouts(): any[] {
+    public getAvailableGameLayouts(): any {
         const gameTypes: any[] = [];
         this.log('formating available layouts for API', LogLevel.info);
         for (const key in availableLayouts) {
@@ -35,7 +43,8 @@ export class GameKeeper extends LoggedClass{
             }
             gameTypes.push(entry);
         }
-        return gameTypes;
+        const data = {type: MessageType.GameTypes, data: gameTypes}
+        return data;
     }
 
     public getCurrentGameState(gameId: number): void {
@@ -45,6 +54,7 @@ export class GameKeeper extends LoggedClass{
             this.log('Updating game [' + gameId + '] for registered users', LogLevel.info);
             data.timestamp = Date.now();
             data.gameId = gameId;
+            data.type = MessageType.GameStatus;
             data.width = askedGame.getBoardWidth();
             data.height = askedGame.getBoardHeight();
             data.gameState = askedGame.getCurrentGameState();
@@ -73,7 +83,15 @@ export class GameKeeper extends LoggedClass{
         //}
         const newGameId = this.games.length;
         const gameCreated = new Game(layout, userKey, newGameId, this.logger);
+
+        gameCreated.gameFinished().subscribe(() => {
+            this.sendOpenGamesToClients(this.getCurrentlyRunningGames());
+        });
+        gameCreated.gameStarted().subscribe(() => {
+            this.sendOpenGamesToClients(this.getCurrentlyRunningGames());
+        });
         this.games[newGameId] = gameCreated;
+
         const desc = layout.getDescription();
 
         this.myWebSocket.addClientToGroup(userKey, '' + newGameId);
@@ -108,18 +126,18 @@ export class GameKeeper extends LoggedClass{
         const game = this.games[gameId];
         if (game && this.isUserAllowedForAction(game, userKey)) {
             game.revealCell(column, row);
+            const gameState = this.getCurrentGameState(gameId);
+            this.myWebSocket.sendUpdateToGroup(gameId, gameState);
         }
-        const gameState = this.getCurrentGameState(gameId);
-        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
     }
 
     public revealSafeCellsForUserAndGame(userKey: any, gameId: any, column: any, row: any) {
         const game = this.games[gameId];
         if (game && this.isUserAllowedForAction(game, userKey)) {
             game.revealSafeCells(column, row);
+            const gameState = this.getCurrentGameState(gameId);
+            this.myWebSocket.sendUpdateToGroup(gameId, gameState);
         }
-        const gameState = this.getCurrentGameState(gameId);
-        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
     }
 
     public toggleCellForUserAndGame(userKey: string, gameId: number, column: number, row: number) {
@@ -127,9 +145,9 @@ export class GameKeeper extends LoggedClass{
 
         if (game && this.isUserAllowedForAction(game, userKey)) {
             game.toggleCell(column, row);
+            const gameState = this.getCurrentGameState(gameId);
+            this.myWebSocket.sendUpdateToGroup(gameId, gameState);
         }
-        const gameState = this.getCurrentGameState(gameId);
-        this.myWebSocket.sendUpdateToGroup(gameId, gameState);
     }
 
     private isUserAllowedForAction(game: Game, userKey: string): boolean {
@@ -137,16 +155,20 @@ export class GameKeeper extends LoggedClass{
         return game && game.getUserKey() === userKey;
     }
 
-    public getCurrentlyRunningGames(): any[] {
+    public getCurrentlyRunningGames(): any {
         const runningGames: Game[] = this._filterGamesForRunningOnes();
         const formattedGames: any[] = [];
         runningGames.forEach((game, index) => {
             const gameData: any = {};
-            gameData['id'] = index;
             Object.assign(gameData, game.getGameOverviewObject());
             formattedGames.push(gameData);
         });
-        return formattedGames;
+        const data = {type: MessageType.OpenGames, data: formattedGames};
+        return data;
+    }
+
+    private sendOpenGamesToClients(data: any) {
+        this.myWebSocket.sendUpdateToAll(data);
     }
 
     private _filterGamesForRunningOnes(): Game[] {
@@ -161,6 +183,7 @@ export class GameKeeper extends LoggedClass{
 
     public resetGames() {
         this.games = [];
+        this.sendOpenGamesToClients(this.getCurrentlyRunningGames());
         this.log('## Game memory has been cleared', LogLevel.info);
     }
 }

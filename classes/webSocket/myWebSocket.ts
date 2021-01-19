@@ -29,7 +29,7 @@ export class MyWebSocket extends LoggedClass {
         return this.clients;
     }
 
-    public sendUpdateToGroup(groupName: number, data: string|any) {
+    public sendUpdateToGroup(groupName: string|number, data: string|any) {
         const clients = this.clients.getClientsForGroup(groupName.toString());
         if ((typeof (data)) === 'string') {
             data = {message: data}
@@ -41,6 +41,11 @@ export class MyWebSocket extends LoggedClass {
                 this.log(exc, LogLevel.error);
             }
         });
+    }
+
+    public sendUpdateToAll(data: string|any) {
+        this.log('updating game list for all connected players', LogLevel.debug);
+        this.sendUpdateToGroup('all', data);
     }
 
     public sendUpdateToUser(userKey: string, data: string|any) {

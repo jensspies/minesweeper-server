@@ -68,14 +68,13 @@ const fastServe = async function (server: FastifyInstance, opts: FastifyServerOp
     });
 
     server.get('/gameTypes', async (request, reply) => {
-        const gameTypes: any[] = gameKeeper.getAvailableGameLayouts();
-        const data = {type: 'GameTypes', data: gameTypes};
+        const data: any = gameKeeper.getAvailableGameLayouts();
         return data;
     });
 
     server.get('/runningGames', async (request, reply) => {
-        const gameList: any[] = gameKeeper.getCurrentlyRunningGames();
-        return gameList;
+        const data: any = gameKeeper.getCurrentlyRunningGames();
+        return data;
     });
 
     server.get('/reveal/:userKey/:game/:column/:row', async (request, reply) => {

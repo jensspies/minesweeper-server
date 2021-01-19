@@ -4,7 +4,8 @@ import { Cell } from './board/cell';
 import { DummyCell } from './board/cells/dummyCell';
 import { RegularCell } from './board/cells/regularCell';
 import { BombCell } from './board/cells/bombCell';
-import { CellStatus, CellMark } from './board/cellStatus';
+import { CellStatus } from './board/cellStatus';
+import { SignalDispatcher } from 'strongly-typed-events';
 
 export class Game extends LoggedClass{
     private gameBoardCells: Array<Cell> = [];
@@ -19,6 +20,24 @@ export class Game extends LoggedClass{
     private fieldNeighbours: Array<Array<Cell>> = [];
     private clientGameState: Array<CellStatus> = [];
     private cellsFlaggedAsBomb: number = 0;
+    private _gameFinished = new SignalDispatcher();
+    private _gameStarted = new SignalDispatcher();
+
+    public gameFinished = () => {
+        return this._gameFinished.asEvent();
+    }
+
+    public gameStarted = () => {
+        return this._gameStarted.asEvent();
+    }
+
+    private gameFinishedDispatcher() {
+        this._gameFinished.dispatch();
+    }
+
+    private gameStartedDispatcher() {
+        this._gameStarted.dispatch();
+    }
 
     constructor(layout: Layout, userKey: string, gameId: number, logger: any) {
         super(logger);
@@ -100,7 +119,7 @@ export class Game extends LoggedClass{
         column = parseInt(column.toString());
         row = parseInt(row.toString());
         this.log('Toggeling Cell [' + column + ', ' + row + '] for game ' + this.gameId, LogLevel.info);
-        if (this.isGameOver() || !this.started) {
+        if (this.isGameOver() || !this.started || !this.isOngoing()) {
             return;
         }
 
@@ -110,9 +129,7 @@ export class Game extends LoggedClass{
         this.clientGameState[togglePostition].toggleMark();
         const toggledMarkedAsBombState = this.gameBoardCells[togglePostition].isMarkedAsBomb();
 
-        this.log('marked bombs before: ' + this.cellsFlaggedAsBomb, LogLevel.debug);
         this.cellsFlaggedAsBomb += this.getMarkedAsBombCellIncrement(currentMarkedAsBombState, toggledMarkedAsBombState);
-        this.log('marked bombs after: ' + this.cellsFlaggedAsBomb, LogLevel.debug);
     }
 
     private getMarkedAsBombCellIncrement(stateBefore: boolean, stateAfter: boolean): number {
@@ -129,6 +146,7 @@ export class Game extends LoggedClass{
 
     private _setWinState() {
         this.ongoing = false;
+        this.gameFinishedDispatcher();
     }
 
     private _getBombNeighboursCount(revealPostition: number): number {
@@ -279,12 +297,14 @@ export class Game extends LoggedClass{
     private _startGame(): void {
         this.started = true;
         this.ongoing = true;
+        this.gameStartedDispatcher();
     }
 
     private _setGameOver(): void {
         this._revealBombsToClient();
         this.ongoing = false;
         this.gameOver = true;
+        this.gameFinishedDispatcher();
     }
 
     /**

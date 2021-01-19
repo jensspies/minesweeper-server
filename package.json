@@ -7,15 +7,12 @@
     "test": "test",
     "start": "node ./build/server.js",
     "build": "tsc ./server.ts --outDir ./build",
-
     "dev": "npm run build && npm run start",
     "docker": "npm run docker:create",
     "prod": "npm run docker:update && npm run docker:create",
-
     "docker:start": "docker start MinesweeperServer",
     "docker:update": "npm run docker:stop && npm run docker:remove && npm run docker:build",
     "docker:stop": "docker stop MinesweeperServer",
-
     "docker:remove": "docker rm MinesweeperServer && docker rmi minesweeperserver:latest",
     "docker:create": "docker run -d -p 8181:8181 -p 3000:3000 --name=MinesweeperServer minesweeperserver:latest",
     "docker:build": "docker build --pull --rm -f \"Dockerfile\" -t minesweeperserver:latest \".\""
@@ -28,6 +25,7 @@
     "fastify-cli": "^2.7.0",
     "fastify-cors": "^5.1.0",
     "simple-node-logger": "^18.12.24",
+    "strongly-typed-events": "^2.0.9",
     "typescript": "^4.1.3",
     "ws": "^7.4.2"
   },
