@@ -58,6 +58,7 @@ export class GameKeeper extends LoggedClass{
             data.width = askedGame.getBoardWidth();
             data.height = askedGame.getBoardHeight();
             data.gameState = askedGame.getCurrentGameState();
+            data.isOver = !askedGame.isOngoing() && data.gameState !== 'PendingStart';
             data.currentState = askedGame.getCurrentCellStates();
             data.markedBombs = askedGame.getMarkedBombCount();
             data.totalBombCount = askedGame.getLayout().getNumberOfMines();
@@ -68,7 +69,7 @@ export class GameKeeper extends LoggedClass{
         return data;
     }
 
-    public startNewGame(userKey: string, gameType: string): string {
+    public startNewGame(userKey: string, gameType: string): any {
         this.log('user [' + userKey + '] wants to create gameType [' + gameType + ']', LogLevel.debug);
 
         if (availableLayouts[gameType] === undefined) {
@@ -100,10 +101,10 @@ export class GameKeeper extends LoggedClass{
         const gameState = this.getCurrentGameState(newGameId);
         this.myWebSocket.sendUpdateToGroup(newGameId, gameState);
 
-        return returnValue;
+        return gameState;
     }
 
-    subscribeToGameRequest(userKey: any, gameId: any) {
+    subscribeToGameRequest(userKey: any, gameId: any): any {
         this.log('User [' + userKey + '] requests to observe game #' + gameId, LogLevel.info);
         const userExists = this.myWebSocket.checkIfUserIsConnected(userKey);
         const gameStillRunning = this.games[gameId]?.isOngoing();
@@ -119,7 +120,7 @@ export class GameKeeper extends LoggedClass{
         }
         const gameState = this.getCurrentGameState(gameId);
         this.myWebSocket.sendUpdateToUser(userKey, gameState);
-
+        return gameState;
     }
 
     public revealCellForUserAndGame(userKey: any, gameId: number, column: any, row: any) {

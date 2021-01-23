@@ -53,11 +53,10 @@ const fastServe = async function (server: FastifyInstance, opts: FastifyServerOp
         const params = JSON.parse(JSON.stringify(request.params));
         let returnValue;
         try{
-            gameKeeper.subscribeToGameRequest(params.userKey, params.game);
+            returnValue = gameKeeper.subscribeToGameRequest(params.userKey, params.game);
         } catch (err) {
             returnValue = err.message;
         }
-        returnValue = '{"gameId": "' + params.game + '"}';
         return returnValue;
     });
 
