@@ -118,12 +118,13 @@ export class Game extends LoggedClass{
     public toggleCell(column: number, row: number) {
         column = parseInt(column.toString());
         row = parseInt(row.toString());
+        const togglePostition: number = this.getArrayPositionOfCell(column, row);
+        const cellAleadyRevealed = this.gameBoardCells[togglePostition].isRevealed();
         this.log('Toggeling Cell [' + column + ', ' + row + '] for game ' + this.gameId, LogLevel.info);
-        if (this.isGameOver() || !this.started || !this.isOngoing()) {
+        if (this.isGameOver() || !this.started || !this.isOngoing() || cellAleadyRevealed) {
             return;
         }
 
-        const togglePostition: number = this.getArrayPositionOfCell(column, row);
         const currentMarkedAsBombState = this.gameBoardCells[togglePostition].isMarkedAsBomb();
         this.gameBoardCells[togglePostition].toggleMarker();
         this.clientGameState[togglePostition].toggleMark();
